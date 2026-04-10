@@ -1,0 +1,83 @@
+/* RESET */
+body {
+  margin: 0;
+  font-family: 'Segoe UI', sans-serif;
+  background: #0f172a;
+  color: white;
+}
+
+/* HEADER */
+h1 {
+  text-align: center;
+  padding: 20px;
+  margin: 0;
+}
+
+/* BOARD */
+#board {
+  display: flex;
+  gap: 20px;
+  padding: 20px;
+  justify-content: center;
+}
+
+/* COLUMN */
+.column {
+  background: #1e293b;
+  padding: 15px;
+  border-radius: 12px;
+  width: 300px;
+  min-height: 400px;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+}
+
+.column h2 {
+  margin-top: 0;
+}
+
+/* INPUT */
+input {
+  width: 70%;
+  padding: 8px;
+  border-radius: 8px;
+  border: none;
+  margin-right: 5px;
+}
+
+button {
+  padding: 8px 10px;
+  border: none;
+  border-radius: 8px;
+  background: #3b82f6;
+  color: white;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #2563eb;
+}
+
+/* TASK CARD */
+.task {
+  background: #334155;
+  margin-top: 10px;
+  padding: 10px;
+  border-radius: 10px;
+  text-align: left;
+  transition: 0.2s;
+}
+
+.task:hover {
+  transform: scale(1.03);
+}
+
+/* TASK BUTTON */
+.task button {
+  margin-top: 5px;
+  margin-right: 5px;
+  background: #475569;
+}
+
+.task button:hover {
+  background: #64748b;
+}
