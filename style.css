@@ -81,3 +81,25 @@ button:hover {
 .task button:hover {
   background: #64748b;
 }
+
+#auth {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin: 20px;
+}
+
+.logout-btn {
+  background: #ef4444;
+}
+
+.logout-btn:hover {
+  background: #dc2626;
+}
+
+#userInfo {
+  text-align: center;
+  margin-top: 10px;
+  font-weight: bold;
+  color: #38bdf8;
+}

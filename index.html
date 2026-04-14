@@ -7,10 +7,24 @@
 </head>
 <body>
 
-  <h1>Kanban Board</h1>
+  <h1>🚀 Kanban Task Manager</h1>
+  <div id="userInfo" style="display:none;">
+  <span id="welcomeText"></span>
+  </div>
+
+  <!-- LOGIN -->
+  <div id="auth">
+    <input id="email" placeholder="Email">
+    <input id="password" type="password" placeholder="Password">
+
+    <button id="registerBtn" onclick="register()">Register</button>
+    <button id="loginBtn" onclick="login()">Login</button>
+    <button id="logoutBtn" onclick="logout()" style="display:none;">Logout</button>
+  </div>
 
   <!-- BOARD -->
-  <div id="board">
+  <div id="board" style="display:none;">
+    
     <div class="column" id="todo">
       <h2>To Do</h2>
       <input id="todoInput" placeholder="New task">
@@ -27,8 +41,11 @@
       <h2>Done</h2>
       <div class="task-list" id="doneList"></div>
     </div>
+
   </div>
 
-<script type="module" src="app.js"></script>
+  <!-- SCRIPT -->
+  <script type="module" src="app.js"></script>
+
 </body>
 </html>
