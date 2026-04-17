@@ -1,4 +1,4 @@
-// 🔥 IMPORT FIREBASE
+// IMPORT FIREBASE
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 
 import {
@@ -21,7 +21,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
 
-// 🔑 CONFIG (PAKAI PUNYA KAMU)
+// CONFIG
 const firebaseConfig = {
   apiKey: "AIzaSyAmMN7ZI5XK0zOiXot6pXIULVFg1BDW9FA",
   authDomain: "kanban-2fdbe.firebaseapp.com",
@@ -53,7 +53,7 @@ const header = document.getElementById("header");
 const welcomeText = document.getElementById("welcomeText");
 
 
-// 🔐 REGISTER
+// REGISTER
 window.register = () => {
   createUserWithEmailAndPassword(auth, email.value, password.value)
     .then(res => {
@@ -67,17 +67,17 @@ window.register = () => {
 };
 
 
-// 🔐 LOGIN
+// LOGIN
 window.login = () => {
   signInWithEmailAndPassword(auth, email.value, password.value);
 };
 
 
-// 🔓 LOGOUT
+// LOGOUT
 window.logout = () => signOut(auth);
 
 
-// 🔥 AUTH STATE
+// AUTH STATE
 onAuthStateChanged(auth, user => {
   if (user) {
     header.style.display = "flex";
@@ -111,7 +111,7 @@ onAuthStateChanged(auth, user => {
 });
 
 
-// ➕ ADD TASK
+// ADD TASK
 window.addTask = (status) => {
   const user = auth.currentUser;
 
@@ -131,7 +131,7 @@ window.addTask = (status) => {
 };
 
 
-// 📥 LOAD TASK
+// LOAD TASK
 function loadTasks(uid) {
   ["todo", "inprogress", "done"].forEach(status => {
     const list = document.getElementById(status + "List");
@@ -186,14 +186,14 @@ function loadTasks(uid) {
 }
 
 
-// ❌ DELETE
+// DELETE
 window.deleteTask = (status, id) => {
   const user = auth.currentUser;
   remove(ref(db, `tasks/${user.uid}/${status}/${id}`));
 };
 
 
-// 🔄 MOVE
+// MOVE
 window.moveTask = (status, id, direction) => {
   const user = auth.currentUser;
 
@@ -239,7 +239,7 @@ window.saveEdit = (status, id) => {
   });
 };
 
-// ✏️ EDIT (UPDATE ALL)
+// EDIT (UPDATE ALL)
 window.editTask = (status, id) => {
   const user = auth.currentUser;
 
@@ -272,7 +272,7 @@ window.editTask = (status, id) => {
 };
 
 
-// 🎨 PRIORITY ICON
+// PRIORITY ICON
 function getPriorityIcon(p) {
   if (p === "High") return "🔴";
   if (p === "Medium") return "🟡";
