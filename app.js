@@ -15,11 +15,13 @@ import {
   push,
   onValue,
   remove,
-  set
+  get,
+  set,
+  update
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
 
-// 🔑 CONFIG FIREBASE
+// 🔑 CONFIG (PAKAI PUNYA KAMU)
 const firebaseConfig = {
   apiKey: "AIzaSyAmMN7ZI5XK0zOiXot6pXIULVFg1BDW9FA",
   authDomain: "kanban-2fdbe.firebaseapp.com",
@@ -31,100 +33,116 @@ const firebaseConfig = {
 };
 
 
-// INIT FIREBASE
+// INIT
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getDatabase(app);
 
-const registerBtn = document.getElementById("registerBtn");
-const loginBtn = document.getElementById("loginBtn");
-const logoutBtn = document.getElementById("logoutBtn");
 
-// AMBIL ELEMENT HTML
+// ELEMENT
 const email = document.getElementById("email");
 const password = document.getElementById("password");
-const board = document.getElementById("board");
+const nameInput = document.getElementById("name");
 
-const userInfo = document.getElementById("userInfo");
+const registerBtn = document.getElementById("registerBtn");
+const loginBtn = document.getElementById("loginBtn");
+
+const board = document.getElementById("board");
+const header = document.getElementById("header");
+
 const welcomeText = document.getElementById("welcomeText");
 
-// AUTH FUNCTION
+
+// 🔐 REGISTER
 window.register = () => {
   createUserWithEmailAndPassword(auth, email.value, password.value)
-    .then(() => alert("Register berhasil"))
-    .catch(err => alert(err.message));
+    .then(res => {
+      const user = res.user;
+
+      set(ref(db, "users/" + user.uid), {
+        name: nameInput.value || "User",
+        avatar: "https://i.pravatar.cc/150"
+      });
+    });
 };
 
+
+// 🔐 LOGIN
 window.login = () => {
-  signInWithEmailAndPassword(auth, email.value, password.value)
-    .then(() => alert("Login berhasil"))
-    .catch(err => alert(err.message));
-};
-
-window.logout = () => {
-  signOut(auth);
+  signInWithEmailAndPassword(auth, email.value, password.value);
 };
 
 
-// CEK USER LOGIN
+// 🔓 LOGOUT
+window.logout = () => signOut(auth);
+
+
+// 🔥 AUTH STATE
 onAuthStateChanged(auth, user => {
   if (user) {
-    // TAMPILKAN BOARD
+    header.style.display = "flex";
     board.style.display = "flex";
 
-    // SEMBUNYIKAN INPUT
     email.style.display = "none";
     password.style.display = "none";
-
+    nameInput.style.display = "none";
     registerBtn.style.display = "none";
     loginBtn.style.display = "none";
-    logoutBtn.style.display = "inline-block";
 
-    // TAMPILKAN USER INFO
-    userInfo.style.display = "block";
-    welcomeText.innerText = "Welcome, " + user.email;
+    get(ref(db, "users/" + user.uid)).then(snap => {
+      const data = snap.val();
+      welcomeText.innerText = "Welcome, " + (data?.name || user.email);
+      document.getElementById("avatar").src = data?.avatar || "";
+    });
 
     loadTasks(user.uid);
   } else {
-    // SEMBUNYIKAN BOARD
+    header.style.display = "none";
     board.style.display = "none";
 
-    // TAMPILKAN INPUT
     email.style.display = "inline-block";
     password.style.display = "inline-block";
-
+    nameInput.style.display = "inline-block";
     registerBtn.style.display = "inline-block";
     loginBtn.style.display = "inline-block";
-    logoutBtn.style.display = "none";
-
-    // SEMBUNYIKAN USER INFO
-    userInfo.style.display = "none";
-    welcomeText.innerText = "";
   }
+  document.getElementById("stats").style.display = "block";
+  document.getElementById("stats").style.display = "none";
 });
 
-// TAMBAH TASK
+
+// ➕ ADD TASK
 window.addTask = (status) => {
   const user = auth.currentUser;
-  const input = document.getElementById(status + "Input");
 
-  if (!input.value) return;
+  const title = document.getElementById(status + "Input").value;
+  const date = document.getElementById(status + "Date").value;
+  const priority = document.getElementById(status + "Priority").value;
+
+  if (!title) return;
 
   push(ref(db, `tasks/${user.uid}/${status}`), {
-    title: input.value
+    title,
+    date,
+    priority
   });
 
-  input.value = "";
+  document.getElementById(status + "Input").value = "";
 };
 
 
-// LOAD DATA REALTIME
+// 📥 LOAD TASK
 function loadTasks(uid) {
   ["todo", "inprogress", "done"].forEach(status => {
     const list = document.getElementById(status + "List");
 
     onValue(ref(db, `tasks/${uid}/${status}`), snapshot => {
       list.innerHTML = "";
+
+      if (!snapshot.exists()) {
+        list.innerHTML = "<p>No task 😎</p>";
+        return;
+      }
 
       snapshot.forEach(child => {
         const task = child.val();
@@ -133,11 +151,31 @@ function loadTasks(uid) {
         div.className = "task";
 
         div.innerHTML = `
-          <strong>${task.title}</strong>
-          <div style="margin-top:8px;">
-            ${status !== "todo" ? `<button onclick="moveTask('${status}','${child.key}','back')">⬅</button>` : ""}
-            ${status !== "done" ? `<button onclick="moveTask('${status}','${child.key}','forward')">➡</button>` : ""}
-            ${status === "done" ? `<button onclick="deleteTask('${status}','${child.key}')">❌</button>` : ""}
+          <div id="view-${child.key}">
+            <strong>${task.title}</strong>
+            <p>📅 ${task.date || "-"}</p>
+            <p>${getPriorityIcon(task.priority)} ${task.priority}</p>
+
+            <div>
+              <button onclick="showEdit('${status}','${child.key}')">✏️</button>
+              ${status !== "todo" ? `<button onclick="moveTask('${status}','${child.key}','back')">⬅</button>` : ""}
+              ${status !== "done" ? `<button onclick="moveTask('${status}','${child.key}','forward')">➡</button>` : ""}
+              ${status === "done" ? `<button onclick="deleteTask('${status}','${child.key}')">❌</button>` : ""}
+            </div>
+          </div>
+
+          <div id="edit-${child.key}" style="display:none;">
+            <input id="editTitle-${child.key}" value="${task.title}">
+            <input type="date" id="editDate-${child.key}" value="${task.date || ""}">
+
+            <select id="editPriority-${child.key}">
+              <option ${task.priority === "Low" ? "selected" : ""}>Low</option>
+              <option ${task.priority === "Medium" ? "selected" : ""}>Medium</option>
+              <option ${task.priority === "High" ? "selected" : ""}>High</option>
+            </select>
+
+            <button onclick="saveEdit('${status}','${child.key}')">Save</button>
+            <button onclick="cancelEdit('${child.key}')">Cancel</button>
           </div>
         `;
 
@@ -148,29 +186,95 @@ function loadTasks(uid) {
 }
 
 
-// HAPUS TASK
+// ❌ DELETE
 window.deleteTask = (status, id) => {
   const user = auth.currentUser;
   remove(ref(db, `tasks/${user.uid}/${status}/${id}`));
 };
 
 
-// PINDAH TASK
-window.moveTask = (status, id, direction = "forward") => {
+// 🔄 MOVE
+window.moveTask = (status, id, direction) => {
   const user = auth.currentUser;
-  let next;
 
-  if (direction === "forward") {
-    next = status === "todo" ? "inprogress" : "done";
-  } else {
-    next = status === "done" ? "inprogress" : "todo";
-  }
+  let next = direction === "forward"
+    ? (status === "todo" ? "inprogress" : "done")
+    : (status === "done" ? "inprogress" : "todo");
 
   const oldRef = ref(db, `tasks/${user.uid}/${status}/${id}`);
   const newRef = ref(db, `tasks/${user.uid}/${next}/${id}`);
 
-  onValue(oldRef, snapshot => {
-    set(newRef, snapshot.val());
+  onValue(oldRef, snap => {
+    set(newRef, snap.val());
     remove(oldRef);
   }, { onlyOnce: true });
 };
+
+window.showEdit = (status, id) => {
+  document.getElementById(`view-${id}`).style.display = "none";
+  document.getElementById(`edit-${id}`).style.display = "block";
+};
+
+window.cancelEdit = (id) => {
+  document.getElementById(`view-${id}`).style.display = "block";
+  document.getElementById(`edit-${id}`).style.display = "none";
+};
+
+window.saveEdit = (status, id) => {
+  const user = auth.currentUser;
+
+  const title = document.getElementById(`editTitle-${id}`).value;
+  const date = document.getElementById(`editDate-${id}`).value;
+  const priority = document.getElementById(`editPriority-${id}`).value;
+
+  if (!title.trim()) {
+    alert("Title tidak boleh kosong");
+    return;
+  }
+
+  update(ref(db, `tasks/${user.uid}/${status}/${id}`), {
+    title,
+    date,
+    priority
+  });
+};
+
+// ✏️ EDIT (UPDATE ALL)
+window.editTask = (status, id) => {
+  const user = auth.currentUser;
+
+  const newTitle = prompt("Edit task title:");
+  const newDate = prompt("Edit deadline (YYYY-MM-DD):");
+  const newPriority = prompt("Priority (Low/Medium/High):");
+
+  const updates = {};
+
+  // hanya update kalau tidak kosong
+  if (newTitle && newTitle.trim() !== "") {
+    updates.title = newTitle;
+  }
+
+  if (newDate && newDate.trim() !== "") {
+    updates.date = newDate;
+  }
+
+  if (newPriority && ["Low", "Medium", "High"].includes(newPriority)) {
+    updates.priority = newPriority;
+  }
+
+  // kalau semua kosong → jangan update
+  if (Object.keys(updates).length === 0) {
+    alert("Tidak ada perubahan");
+    return;
+  }
+
+  update(ref(db, `tasks/${user.uid}/${status}/${id}`), updates);
+};
+
+
+// 🎨 PRIORITY ICON
+function getPriorityIcon(p) {
+  if (p === "High") return "🔴";
+  if (p === "Medium") return "🟡";
+  return "🟢";
+}

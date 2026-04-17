@@ -103,3 +103,24 @@ button:hover {
   font-weight: bold;
   color: #38bdf8;
 }
+
+#header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #1e293b;
+  color: white;
+  padding: 10px 20px;
+}
+
+#userSection {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+#avatar {
+  width: 35px;
+  height: 35px;
+  border-radius: 50%;
+}

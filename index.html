@@ -7,45 +7,62 @@
 </head>
 <body>
 
-  <h1>🚀 Kanban Task Manager</h1>
-  <div id="userInfo" style="display:none;">
-  <span id="welcomeText"></span>
+<!-- HEADER -->
+<div id="header" style="display:none;">
+  <h2>🚀 Kanban Board</h2>
+  <div id="userSection">
+    <span id="welcomeText"></span>
+    <img id="avatar" />
+    <button onclick="logout()">Logout</button>
+  </div>
+</div>
+
+<h1>Kanban Task Manager</h1>
+
+<!-- AUTH -->
+<div id="auth">
+  <input id="name" placeholder="Name">
+  <input id="email" placeholder="Email">
+  <input id="password" type="password" placeholder="Password">
+  
+  <button id="registerBtn" onclick="register()">Register</button>
+  <button id="loginBtn" onclick="login()">Login</button>
+</div>
+
+<!-- BOARD -->
+<div id="board" style="display:none;">
+
+  <!-- TODO -->
+  <div class="column">
+    <h2>To Do</h2>
+
+    <input id="todoInput" placeholder="New task">
+    <input type="date" id="todoDate">
+    <select id="todoPriority">
+      <option value="Low">Low</option>
+      <option value="Medium">Medium</option>
+      <option value="High">High</option>
+    </select>
+
+    <button onclick="addTask('todo')">Add</button>
+
+    <div id="todoList"></div>
   </div>
 
-  <!-- LOGIN -->
-  <div id="auth">
-    <input id="email" placeholder="Email">
-    <input id="password" type="password" placeholder="Password">
-
-    <button id="registerBtn" onclick="register()">Register</button>
-    <button id="loginBtn" onclick="login()">Login</button>
-    <button id="logoutBtn" onclick="logout()" style="display:none;">Logout</button>
+  <!-- IN PROGRESS -->
+  <div class="column">
+    <h2>In Progress</h2>
+    <div id="inprogressList"></div>
   </div>
 
-  <!-- BOARD -->
-  <div id="board" style="display:none;">
-    
-    <div class="column" id="todo">
-      <h2>To Do</h2>
-      <input id="todoInput" placeholder="New task">
-      <button onclick="addTask('todo')">Add</button>
-      <div class="task-list" id="todoList"></div>
-    </div>
-
-    <div class="column" id="inprogress">
-      <h2>In Progress</h2>
-      <div class="task-list" id="inprogressList"></div>
-    </div>
-
-    <div class="column" id="done">
-      <h2>Done</h2>
-      <div class="task-list" id="doneList"></div>
-    </div>
-
+  <!-- DONE -->
+  <div class="column">
+    <h2>Done</h2>
+    <div id="doneList"></div>
   </div>
 
-  <!-- SCRIPT -->
-  <script type="module" src="app.js"></script>
+</div>
 
+<script type="module" src="app.js"></script>
 </body>
 </html>
