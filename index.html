@@ -39,13 +39,7 @@
 
   <!-- TODO -->
   <div class="column" id="todo">
-    <h2>
-      📋 To Do
-      <span>
-        <button onclick="moveMainColumn('todo','left')" title="Move Left">⬅</button>
-        <button onclick="moveMainColumn('todo','right')" title="Move Right">➡</button>
-      </span>
-    </h2>
+    <h2>📋 To Do</h2>
 
     <input id="todoInput" placeholder="Masukkan task baru..." maxlength="100">
     <input type="date" id="todoDate">
@@ -63,25 +57,13 @@
 
   <!-- IN PROGRESS -->
   <div class="column" id="inprogress">
-    <h2>
-      ⚙️ In Progress
-      <span>
-        <button onclick="moveMainColumn('inprogress','left')">⬅</button>
-        <button onclick="moveMainColumn('inprogress','right')">➡</button>
-      </span>
-    </h2>
+    <h2>⚙️ In Progress</h2>
     <div id="inprogressList"></div>
   </div>
 
   <!-- DONE -->
   <div class="column" id="done">
-    <h2>
-      ✅ Done
-      <span>
-        <button onclick="moveMainColumn('done','left')">⬅</button>
-        <button onclick="moveMainColumn('done','right')">➡</button>
-      </span>
-    </h2>
+    <h2>✅ Done</h2>
     <div id="doneList"></div>
 
     <button onclick="deleteAllTask('done')" style="background: #10b981; margin-top: 10px;">

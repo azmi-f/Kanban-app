@@ -112,7 +112,6 @@ onAuthStateChanged(auth, async (user) => {
 
     // Load data
     loadUserData(user.uid);
-    loadColumnOrder(user.uid);
     loadTasks(user.uid);
     loadCustomColumns(user.uid);
 
@@ -136,66 +135,6 @@ function loadUserData(uid) {
     }
   });
 }
-
-// ================= COLUMN ORDER =================
-function loadColumnOrder(uid) {
-  onValue(ref(db, `columnOrder/${uid}`), (snapshot) => {
-    let order = snapshot.val();
-    if (!order) {
-      order = ["todo", "inprogress", "done"];
-      set(ref(db, `columnOrder/${uid}`), order);
-    }
-    renderColumns(order);
-  });
-}
-
-function renderColumns(order) {
-  const board = document.getElementById("board");
-  const cols = {
-    todo: document.getElementById("todo"),
-    inprogress: document.getElementById("inprogress"),
-    done: document.getElementById("done")
-  };
-
-  board.innerHTML = "";
-  const titleMap = {
-    todo: "📋 To Do",
-    inprogress: "⚙️ In Progress", 
-    done: "✅ Done"
-  };
-
-  order.forEach(col => {
-    const el = cols[col];
-    if (!el) return;
-
-    const header = el.querySelector("h2 span");
-    el.querySelector("h2").innerHTML = `
-      ${titleMap[col]}
-      <span>
-        <button onclick="moveMainColumn('${col}','left')" title="Move Left">⬅</button>
-        <button onclick="moveMainColumn('${col}','right')" title="Move Right">➡</button>
-      </span>
-    `;
-
-    board.appendChild(el);
-  });
-}
-
-window.moveMainColumn = (col, direction) => {
-  const user = auth.currentUser;
-  if (!user) return;
-
-  get(ref(db, `columnOrder/${user.uid}`)).then((snapshot) => {
-    let order = snapshot.val() || ["todo", "inprogress", "done"];
-    const i = order.indexOf(col);
-    let target = direction === "left" ? i - 1 : i + 1;
-
-    if (target < 0 || target >= order.length) return;
-
-    [order[i], order[target]] = [order[target], order[i]];
-    set(ref(db, `columnOrder/${user.uid}`), order);
-  });
-};
 
 // ================= CUSTOM COLUMNS =================
 window.addColumn = () => {
@@ -226,10 +165,86 @@ function loadCustomColumns(uid) {
       div.className = "column custom-column";
       div.id = `custom-${child.key}`;
       div.innerHTML = `
-        <h2>${col.name} <button onclick="deleteCustomColumn('${child.key}')" style="background:#ef4444;font-size:12px;padding:4px 8px;">×</button></h2>
-        <div id="${div.id}-list"></div>
+        <h2>
+          ${col.name} 
+          <button onclick="deleteCustomColumn('${child.key}')" style="background:#ef4444;font-size:12px;padding:4px 8px;">×</button>
+        </h2>
+
+        <textarea 
+          id="note-input-${child.key}" 
+          class="custom-column-notes" 
+          placeholder="Tulis catatan..."
+        ></textarea>
+
+        <button onclick="addNote('${child.key}')" 
+          style="margin-top:10px;background:#f59e0b;">
+          ➕ Tambah Catatan
+        </button>
+
+        <div id="notes-${child.key}"></div>
       `;
       document.getElementById("board").appendChild(div);
+
+      loadNotes(uid, child.key);
+    });
+  });
+}
+
+window.addNote = (colId) => {
+  const user = auth.currentUser;
+  if (!user) return;
+
+  const input = document.getElementById(`note-input-${colId}`);
+  const text = input.value.trim();
+
+  if (!text) {
+    alert("Catatan tidak boleh kosong!");
+    return;
+  }
+
+  push(ref(db, `notes/${user.uid}/${colId}`), {
+    text,
+    createdAt: Date.now()
+  });
+
+  input.value = "";
+};
+
+window.deleteNote = (colId, noteId) => {
+  const user = auth.currentUser;
+
+  if (confirm("Hapus catatan ini?")) {
+    remove(ref(db, `notes/${user.uid}/${colId}/${noteId}`));
+  }
+};
+
+function loadNotes(uid, colId) {
+  const list = document.getElementById(`notes-${colId}`);
+  if (!list) return;
+
+  onValue(ref(db, `notes/${uid}/${colId}`), (snapshot) => {
+    list.innerHTML = "";
+
+    if (!snapshot.exists()) {
+      list.innerHTML = `<div class="empty-state">Belum ada catatan</div>`;
+      return;
+    }
+
+    snapshot.forEach((child) => {
+      const note = child.val();
+
+      const div = document.createElement("div");
+      div.className = "note-item";
+
+      div.innerHTML = `
+        <div>${note.text}</div>
+        <button onclick="deleteNote('${colId}','${child.key}')" 
+          style="margin-top:5px;background:#ef4444;font-size:12px;">
+          ❌ Hapus
+        </button>
+      `;
+
+      list.appendChild(div);
     });
   });
 }
