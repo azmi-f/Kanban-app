@@ -1,14 +1,14 @@
-// IMPORT FIREBASE
+// 🔥 IMPORT FIREBASE
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-
 import {
   getAuth,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signOut,
-  onAuthStateChanged
+  onAuthStateChanged,
+  sendEmailVerification,
+  updateProfile as updateUserProfile
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-
 import {
   getDatabase,
   ref,
@@ -20,8 +20,7 @@ import {
   update
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
-
-// CONFIG
+// 🔑 CONFIG
 const firebaseConfig = {
   apiKey: "AIzaSyAmMN7ZI5XK0zOiXot6pXIULVFg1BDW9FA",
   authDomain: "kanban-2fdbe.firebaseapp.com",
@@ -32,184 +31,324 @@ const firebaseConfig = {
   appId: "1:749194970625:web:ac22510a775cd3f6eaa200"
 };
 
-
 // INIT
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getDatabase(app);
 
-
-// ELEMENT
-const email = document.getElementById("email");
-const password = document.getElementById("password");
-const nameInput = document.getElementById("name");
-
-const registerBtn = document.getElementById("registerBtn");
-const loginBtn = document.getElementById("loginBtn");
-
-const board = document.getElementById("board");
-const header = document.getElementById("header");
-
-const welcomeText = document.getElementById("welcomeText");
-
-
-// REGISTER
-window.register = () => {
-  createUserWithEmailAndPassword(auth, email.value, password.value)
-    .then(res => {
-      const user = res.user;
-
-      set(ref(db, "users/" + user.uid), {
-        name: nameInput.value || "User",
-        avatar: "https://i.pravatar.cc/150"
-      });
-    });
+// ELEMENTS
+const elements = {
+  email: document.getElementById("email"),
+  password: document.getElementById("password"),
+  name: document.getElementById("name"),
+  board: document.getElementById("board"),
+  header: document.getElementById("header"),
+  welcomeText: document.getElementById("welcomeText"),
+  avatar: document.getElementById("avatar")
 };
 
+// ================= AUTH =================
+window.register = async () => {
+  const emailVal = elements.email.value.trim();
+  const passwordVal = elements.password.value;
+  const nameVal = elements.name.value.trim();
 
-// LOGIN
-window.login = () => {
-  signInWithEmailAndPassword(auth, email.value, password.value);
-};
-
-
-// LOGOUT
-window.logout = () => signOut(auth);
-
-
-// AUTH STATE
-onAuthStateChanged(auth, user => {
-  if (user) {
-    header.style.display = "flex";
-    board.style.display = "flex";
-
-    email.style.display = "none";
-    password.style.display = "none";
-    nameInput.style.display = "none";
-    registerBtn.style.display = "none";
-    loginBtn.style.display = "none";
-
-    get(ref(db, "users/" + user.uid)).then(snap => {
-      const data = snap.val();
-      welcomeText.innerText = "Welcome, " + (data?.name || user.email);
-      document.getElementById("avatar").src = data?.avatar || "";
-    });
-
-    loadTasks(user.uid);
-  } else {
-    header.style.display = "none";
-    board.style.display = "none";
-
-    email.style.display = "inline-block";
-    password.style.display = "inline-block";
-    nameInput.style.display = "inline-block";
-    registerBtn.style.display = "inline-block";
-    loginBtn.style.display = "inline-block";
+  if (!emailVal || !passwordVal || passwordVal.length < 6) {
+    alert("❌ Email dan password (min 6 karakter) wajib diisi!");
+    return;
   }
-  document.getElementById("stats").style.display = "block";
-  document.getElementById("stats").style.display = "none";
+
+  try {
+    const result = await createUserWithEmailAndPassword(auth, emailVal, passwordVal);
+    const user = result.user;
+
+    await sendEmailVerification(user);
+    
+    await set(ref(db, `users/${user.uid}`), {
+      name: nameVal || "User",
+      email: emailVal,
+      createdAt: Date.now()
+    });
+
+    alert("✅ Registrasi berhasil! Cek email verifikasi.");
+  } catch (error) {
+    console.error("Register error:", error);
+    alert("❌ Registrasi gagal: " + error.message);
+  }
+};
+
+window.login = async () => {
+  try {
+    await signInWithEmailAndPassword(auth, elements.email.value.trim(), elements.password.value);
+  } catch (error) {
+    console.error("Login error:", error);
+    alert("❌ Login gagal: " + error.message);
+  }
+};
+
+window.logout = () => {
+  signOut(auth);
+};
+
+// ================= AUTH STATE =================
+onAuthStateChanged(auth, async (user) => {
+  console.log("Auth state changed:", user ? user.uid : "logged out");
+  
+  if (user) {
+    if (!user.emailVerified) {
+      alert("⚠️ Silakan verifikasi email Anda!");
+      signOut(auth);
+      return;
+    }
+
+    // Show app
+    elements.header.style.display = "flex";
+    elements.board.style.display = "flex";
+    
+    // Hide auth form
+    [elements.email, elements.password, elements.name].forEach(el => {
+      if (el) el.style.display = "none";
+    });
+
+    // Load data
+    loadUserData(user.uid);
+    loadColumnOrder(user.uid);
+    loadTasks(user.uid);
+    loadCustomColumns(user.uid);
+
+  } else {
+    // Show auth form
+    elements.header.style.display = "none";
+    elements.board.style.display = "none";
+    
+    [elements.email, elements.password, elements.name].forEach(el => {
+      if (el) el.style.display = "block";
+    });
+  }
 });
 
+// ================= USER DATA =================
+function loadUserData(uid) {
+  onValue(ref(db, `users/${uid}`), (snap) => {
+    const data = snap.val();
+    if (data) {
+      elements.welcomeText.textContent = `Halo, ${data.name || user.email}`;
+    }
+  });
+}
 
-// ADD TASK
+// ================= COLUMN ORDER =================
+function loadColumnOrder(uid) {
+  onValue(ref(db, `columnOrder/${uid}`), (snapshot) => {
+    let order = snapshot.val();
+    if (!order) {
+      order = ["todo", "inprogress", "done"];
+      set(ref(db, `columnOrder/${uid}`), order);
+    }
+    renderColumns(order);
+  });
+}
+
+function renderColumns(order) {
+  const board = document.getElementById("board");
+  const cols = {
+    todo: document.getElementById("todo"),
+    inprogress: document.getElementById("inprogress"),
+    done: document.getElementById("done")
+  };
+
+  board.innerHTML = "";
+  const titleMap = {
+    todo: "📋 To Do",
+    inprogress: "⚙️ In Progress", 
+    done: "✅ Done"
+  };
+
+  order.forEach(col => {
+    const el = cols[col];
+    if (!el) return;
+
+    const header = el.querySelector("h2 span");
+    el.querySelector("h2").innerHTML = `
+      ${titleMap[col]}
+      <span>
+        <button onclick="moveMainColumn('${col}','left')" title="Move Left">⬅</button>
+        <button onclick="moveMainColumn('${col}','right')" title="Move Right">➡</button>
+      </span>
+    `;
+
+    board.appendChild(el);
+  });
+}
+
+window.moveMainColumn = (col, direction) => {
+  const user = auth.currentUser;
+  if (!user) return;
+
+  get(ref(db, `columnOrder/${user.uid}`)).then((snapshot) => {
+    let order = snapshot.val() || ["todo", "inprogress", "done"];
+    const i = order.indexOf(col);
+    let target = direction === "left" ? i - 1 : i + 1;
+
+    if (target < 0 || target >= order.length) return;
+
+    [order[i], order[target]] = [order[target], order[i]];
+    set(ref(db, `columnOrder/${user.uid}`), order);
+  });
+};
+
+// ================= CUSTOM COLUMNS =================
+window.addColumn = () => {
+  const user = auth.currentUser;
+  if (!user) return;
+
+  const name = prompt("Nama kolom baru:");
+  if (!name || name.trim().length < 2) {
+    alert("Nama kolom minimal 2 karakter!");
+    return;
+  }
+
+  push(ref(db, `customColumns/${user.uid}`), {
+    name: name.trim(),
+    createdAt: Date.now()
+  });
+};
+
+function loadCustomColumns(uid) {
+  onValue(ref(db, `customColumns/${uid}`), (snapshot) => {
+    document.querySelectorAll(".custom-column").forEach(el => el.remove());
+
+    if (!snapshot.exists()) return;
+
+    snapshot.forEach((child) => {
+      const col = child.val();
+      const div = document.createElement("div");
+      div.className = "column custom-column";
+      div.id = `custom-${child.key}`;
+      div.innerHTML = `
+        <h2>${col.name} <button onclick="deleteCustomColumn('${child.key}')" style="background:#ef4444;font-size:12px;padding:4px 8px;">×</button></h2>
+        <div id="${div.id}-list"></div>
+      `;
+      document.getElementById("board").appendChild(div);
+    });
+  });
+}
+
+window.deleteCustomColumn = (id) => {
+  const user = auth.currentUser;
+  if (confirm("Hapus kolom ini?")) {
+    remove(ref(db, `customColumns/${user.uid}/${id}`));
+  }
+};
+
+// ================= TASKS =================
 window.addTask = (status) => {
   const user = auth.currentUser;
+  if (!user) return;
 
-  const title = document.getElementById(status + "Input").value;
-  const date = document.getElementById(status + "Date").value;
-  const priority = document.getElementById(status + "Priority").value;
+  const input = document.getElementById(`${status}Input`);
+  const title = input.value.trim();
 
-  if (!title) return;
+  if (!title) {
+    alert("Task tidak boleh kosong!");
+    return;
+  }
 
   push(ref(db, `tasks/${user.uid}/${status}`), {
     title,
-    date,
-    priority
+    createdAt: Date.now(),
+    priority: document.getElementById(`${status}Priority`)?.value || "Medium"
   });
 
-  document.getElementById(status + "Input").value = "";
+  input.value = "";
 };
 
-
-// LOAD TASK
 function loadTasks(uid) {
   ["todo", "inprogress", "done"].forEach(status => {
-    const list = document.getElementById(status + "List");
+    const list = document.getElementById(`${status}List`);
+    if (!list) return;
 
-    onValue(ref(db, `tasks/${uid}/${status}`), snapshot => {
+    onValue(ref(db, `tasks/${uid}/${status}`), (snapshot) => {
       list.innerHTML = "";
-
+      
       if (!snapshot.exists()) {
-        list.innerHTML = "<p>No task 😎</p>";
+        list.innerHTML = '<div class="empty-state">No tasks 😎</div>';
         return;
       }
 
-      snapshot.forEach(child => {
+      snapshot.forEach((child) => {
         const task = child.val();
-
         const div = document.createElement("div");
         div.className = "task";
-
         div.innerHTML = `
           <div id="view-${child.key}">
             <strong>${task.title}</strong>
-            <p>📅 ${task.date || "-"}</p>
-            <p>${getPriorityIcon(task.priority)} ${task.priority}</p>
-
-            <div>
-              <button onclick="showEdit('${status}','${child.key}')">✏️</button>
-              ${status !== "todo" ? `<button onclick="moveTask('${status}','${child.key}','back')">⬅</button>` : ""}
-              ${status !== "done" ? `<button onclick="moveTask('${status}','${child.key}','forward')">➡</button>` : ""}
-              ${status === "done" ? `<button onclick="deleteTask('${status}','${child.key}')">❌</button>` : ""}
+            <small style="color:#94a3b8;">${new Date(task.createdAt).toLocaleDateString()}</small>
+            <div class="task-controls">
+              <button class="edit-btn" onclick="showEdit('${status}','${child.key}')">✏️</button>
+              <button class="move-btn" onclick="moveTask('${status}','${child.key}','back')">⬅</button>
+              <button class="move-btn" onclick="moveTask('${status}','${child.key}','forward')">➡</button>
+              <button class="delete-btn" onclick="deleteTask('${status}','${child.key}')">❌</button>
             </div>
           </div>
-
-          <div id="edit-${child.key}" style="display:none;">
-            <input id="editTitle-${child.key}" value="${task.title}">
-            <input type="date" id="editDate-${child.key}" value="${task.date || ""}">
-
-            <select id="editPriority-${child.key}">
-              <option ${task.priority === "Low" ? "selected" : ""}>Low</option>
-              <option ${task.priority === "Medium" ? "selected" : ""}>Medium</option>
-              <option ${task.priority === "High" ? "selected" : ""}>High</option>
-            </select>
-
-            <button onclick="saveEdit('${status}','${child.key}')">Save</button>
-            <button onclick="cancelEdit('${child.key}')">Cancel</button>
+          <div id="edit-${child.key}" style="display:none; margin-top:10px;">
+            <input id="editTitle-${child.key}" value="${task.title}" style="width:70%;">
+            <button onclick="saveEdit('${status}','${child.key}')" style="width:28%;background:#10b981;">Save</button>
+            <button onclick="cancelEdit('${child.key}')" style="width:28%;background:#6b7280;">Cancel</button>
           </div>
         `;
-
         list.appendChild(div);
       });
     });
   });
 }
 
-
-// DELETE
+// TASK ACTIONS
 window.deleteTask = (status, id) => {
   const user = auth.currentUser;
-  remove(ref(db, `tasks/${user.uid}/${status}/${id}`));
+  if (confirm("Hapus task ini?")) {
+    remove(ref(db, `tasks/${user.uid}/${status}/${id}`));
+  }
 };
 
+window.deleteAllTask = (status) => {
+  const user = auth.currentUser;
+  if (confirm("Hapus semua task di kolom ini?")) {
+    remove(ref(db, `tasks/${user.uid}/${status}`));
+  }
+};
 
-// MOVE
+window.deleteAllTasks = () => {
+  const user = auth.currentUser;
+  if (confirm("⚠️ Hapus SEMUA task dari semua kolom?")) {
+    remove(ref(db, `tasks/${user.uid}`));
+  }
+};
+
 window.moveTask = (status, id, direction) => {
   const user = auth.currentUser;
-
-  let next = direction === "forward"
-    ? (status === "todo" ? "inprogress" : "done")
-    : (status === "done" ? "inprogress" : "todo");
+  const statusOrder = ["todo", "inprogress", "done"];
+  const currentIndex = statusOrder.indexOf(status);
+  
+  let nextStatus;
+  if (direction === "forward") {
+    nextStatus = statusOrder[currentIndex + 1] || statusOrder[0];
+  } else {
+    nextStatus = statusOrder[currentIndex - 1] || statusOrder[statusOrder.length - 1];
+  }
 
   const oldRef = ref(db, `tasks/${user.uid}/${status}/${id}`);
-  const newRef = ref(db, `tasks/${user.uid}/${next}/${id}`);
+  const newRef = ref(db, `tasks/${user.uid}/${nextStatus}/${id}`);
 
-  onValue(oldRef, snap => {
-    set(newRef, snap.val());
-    remove(oldRef);
-  }, { onlyOnce: true });
+  get(oldRef).then((snap) => {
+    if (snap.exists()) {
+      set(newRef, snap.val());
+      remove(oldRef);
+    }
+  });
 };
 
+// EDIT TASK
 window.showEdit = (status, id) => {
   document.getElementById(`view-${id}`).style.display = "none";
   document.getElementById(`edit-${id}`).style.display = "block";
@@ -222,59 +361,29 @@ window.cancelEdit = (id) => {
 
 window.saveEdit = (status, id) => {
   const user = auth.currentUser;
+  const title = document.getElementById(`editTitle-${id}`).value.trim();
 
-  const title = document.getElementById(`editTitle-${id}`).value;
-  const date = document.getElementById(`editDate-${id}`).value;
-  const priority = document.getElementById(`editPriority-${id}`).value;
-
-  if (!title.trim()) {
-    alert("Title tidak boleh kosong");
+  if (!title) {
+    alert("Judul task tidak boleh kosong!");
     return;
   }
 
   update(ref(db, `tasks/${user.uid}/${status}/${id}`), {
-    title,
-    date,
-    priority
+    title
   });
 };
 
-// EDIT (UPDATE ALL)
-window.editTask = (status, id) => {
+window.updateProfile = () => {
   const user = auth.currentUser;
-
-  const newTitle = prompt("Edit task title:");
-  const newDate = prompt("Edit deadline (YYYY-MM-DD):");
-  const newPriority = prompt("Priority (Low/Medium/High):");
-
-  const updates = {};
-
-  // hanya update kalau tidak kosong
-  if (newTitle && newTitle.trim() !== "") {
-    updates.title = newTitle;
+  const newName = prompt("Nama baru:", "");
+  if (newName && newName.trim()) {
+    update(ref(db, `users/${user.uid}`), {
+      name: newName.trim()
+    }).then(() => {
+      alert("✅ Profile updated!");
+    });
   }
-
-  if (newDate && newDate.trim() !== "") {
-    updates.date = newDate;
-  }
-
-  if (newPriority && ["Low", "Medium", "High"].includes(newPriority)) {
-    updates.priority = newPriority;
-  }
-
-  // kalau semua kosong → jangan update
-  if (Object.keys(updates).length === 0) {
-    alert("Tidak ada perubahan");
-    return;
-  }
-
-  update(ref(db, `tasks/${user.uid}/${status}/${id}`), updates);
 };
 
-
-// PRIORITY ICON
-function getPriorityIcon(p) {
-  if (p === "High") return "🔴";
-  if (p === "Medium") return "🟡";
-  return "🟢";
-}
+// INIT
+console.log("🚀 Kanban App Loaded!");

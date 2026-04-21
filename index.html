@@ -1,68 +1,97 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
 <head>
   <meta charset="UTF-8">
-  <title>Kanban Firebase</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🚀 Kanban Task Manager</title>
   <link rel="stylesheet" href="style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📋</text></svg>">
 </head>
 <body>
 
-<!-- HEADER -->
-<div id="header" style="display:none;">
-  <h2>🚀 Kanban Board</h2>
+<!-- 🔷 HEADER -->
+<div id="header" style="display: none;">
+  <h2>🚀 Kanban Task Manager</h2>
+
   <div id="userSection">
-    <span id="welcomeText"></span>
-    <img id="avatar" />
-    <button onclick="logout()">Logout</button>
+    <span id="welcomeText">Loading...</span>
+    <img id="avatar" src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMjAiIGZpbGw9IiMzODhiZjgiLz4KPHRleHQgeD0iMjAiIHk9IjI2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IndoaXRlIj5VTjwvdGV4dD4KPC9zdmc+" alt="Avatar" />
+
+    <button onclick="updateProfile()">👤 Profile</button>
+    <button onclick="addColumn()">+ Column</button>
+    <button onclick="deleteAllTasks()" class="delete-btn" style="background: #ef4444;">🗑 Clear All</button>
+    <button onclick="logout()" class="logout-btn">🚪 Logout</button>
   </div>
 </div>
 
-<h1>Kanban Task Manager</h1>
-
-<!-- AUTH -->
+<!-- 🔐 AUTH -->
 <div id="auth">
-  <input id="name" placeholder="Name">
-  <input id="email" placeholder="Email">
-  <input id="password" type="password" placeholder="Password">
+  <input id="name" placeholder="Nama Lengkap" maxlength="50">
+  <input id="email" type="email" placeholder="Email" maxlength="100">
+  <input id="password" type="password" placeholder="Password" maxlength="50">
   
-  <button id="registerBtn" onclick="register()">Register</button>
-  <button id="loginBtn" onclick="login()">Login</button>
+  <button id="registerBtn" onclick="register()">📝 Register</button>
+  <button id="loginBtn" onclick="login()">🔑 Login</button>
 </div>
 
-<!-- BOARD -->
-<div id="board" style="display:none;">
+<!-- 📊 BOARD -->
+<div id="board" style="display: none;">
 
   <!-- TODO -->
-  <div class="column">
-    <h2>To Do</h2>
+  <div class="column" id="todo">
+    <h2>
+      📋 To Do
+      <span>
+        <button onclick="moveMainColumn('todo','left')" title="Move Left">⬅</button>
+        <button onclick="moveMainColumn('todo','right')" title="Move Right">➡</button>
+      </span>
+    </h2>
 
-    <input id="todoInput" placeholder="New task">
+    <input id="todoInput" placeholder="Masukkan task baru..." maxlength="100">
     <input type="date" id="todoDate">
+    
     <select id="todoPriority">
-      <option value="Low">Low</option>
-      <option value="Medium">Medium</option>
-      <option value="High">High</option>
+      <option value="Low">📊 Low</option>
+      <option value="Medium" selected>⚡ Medium</option>
+      <option value="High">🔥 High</option>
     </select>
 
-    <button onclick="addTask('todo')">Add</button>
+    <button onclick="addTask('todo')">➕ Add Task</button>
 
     <div id="todoList"></div>
   </div>
 
   <!-- IN PROGRESS -->
-  <div class="column">
-    <h2>In Progress</h2>
+  <div class="column" id="inprogress">
+    <h2>
+      ⚙️ In Progress
+      <span>
+        <button onclick="moveMainColumn('inprogress','left')">⬅</button>
+        <button onclick="moveMainColumn('inprogress','right')">➡</button>
+      </span>
+    </h2>
     <div id="inprogressList"></div>
   </div>
 
   <!-- DONE -->
-  <div class="column">
-    <h2>Done</h2>
+  <div class="column" id="done">
+    <h2>
+      ✅ Done
+      <span>
+        <button onclick="moveMainColumn('done','left')">⬅</button>
+        <button onclick="moveMainColumn('done','right')">➡</button>
+      </span>
+    </h2>
     <div id="doneList"></div>
+
+    <button onclick="deleteAllTask('done')" style="background: #10b981; margin-top: 10px;">
+      🗑 Clear Done
+    </button>
   </div>
 
 </div>
 
 <script type="module" src="app.js"></script>
+
 </body>
 </html>
