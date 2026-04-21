@@ -237,17 +237,47 @@ function loadNotes(uid, colId) {
       div.className = "note-item";
 
       div.innerHTML = `
-        <div>${note.text}</div>
-        <button onclick="deleteNote('${colId}','${child.key}')" 
-          style="margin-top:5px;background:#ef4444;font-size:12px;">
-          ❌ Hapus
-        </button>
+        <div id="note-view-${child.key}">
+          <div>${note.text}</div>
+          <button onclick="showEditNote('${colId}','${child.key}')">✏️</button>
+          <button onclick="deleteNote('${colId}','${child.key}')">❌</button>
+        </div>
+
+        <div id="note-edit-${child.key}" style="display:none; margin-top:5px;">
+          <input id="note-input-edit-${child.key}" value="${note.text}" style="width:70%;">
+          <button onclick="saveNote('${colId}','${child.key}')" style="background:#10b981;">Save</button>
+          <button onclick="cancelEditNote('${child.key}')" style="background:#6b7280;">Cancel</button>
+        </div>
       `;
 
       list.appendChild(div);
     });
   });
 }
+
+window.showEditNote = (colId, noteId) => {
+  document.getElementById(`note-view-${noteId}`).style.display = "none";
+  document.getElementById(`note-edit-${noteId}`).style.display = "block";
+};
+
+window.cancelEditNote = (noteId) => {
+  document.getElementById(`note-view-${noteId}`).style.display = "block";
+  document.getElementById(`note-edit-${noteId}`).style.display = "none";
+};
+
+window.saveNote = (colId, noteId) => {
+  const user = auth.currentUser;
+  const newText = document.getElementById(`note-input-edit-${noteId}`).value.trim();
+
+  if (!newText) {
+    alert("Catatan tidak boleh kosong!");
+    return;
+  }
+
+  update(ref(db, `notes/${user.uid}/${colId}/${noteId}`), {
+    text: newText
+  });
+};
 
 window.deleteCustomColumn = (id) => {
   const user = auth.currentUser;
